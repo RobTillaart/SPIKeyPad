@@ -1,4 +1,4 @@
-# Change Log I2CKeyPad
+# Change Log SPIKeyPad
 
 All notable changes to this project will be documented in this file.
 
