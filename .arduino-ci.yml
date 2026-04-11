@@ -1,0 +1,10 @@
+board_manager:
+  additional_urls: []
+
+compile:
+  platforms:
+    - uno
+
+unittest:
+  platforms:
+    - uno
