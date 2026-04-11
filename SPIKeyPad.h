@@ -46,15 +46,15 @@ public:
 
     /// @brief Initialize keypad and underlying MCP23S08
     /// @return true if initialization succeeded
-    bool begin();
+    [[nodiscard]] bool begin();
 
     /// @brief Get the currently pressed key
     /// @return key index (0–15) or SPIKeyPadLib::NO_KEY
-    uint8_t getKey();
+    [[nodiscard]] uint8_t getKey();
 
     /// @brief Check if any key is currently pressed
     /// @return true if a key is pressed
-    bool isPressed();
+    [[nodiscard]] bool isPressed();
 
 private:
     MCP23S08 _io;
