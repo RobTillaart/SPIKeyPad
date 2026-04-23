@@ -10,7 +10,7 @@
 
 #include "Arduino.h"
 #include "SPI.h"
-
+#include <MCP23S08.h>
 
 #define SPI_KEYPAD_LIB_VERSION    (F("0.1.0"))
 
@@ -30,9 +30,12 @@
 class SPIKeyPad
 {
 public:
-  SPIKeyPad(const uint8_t deviceAddress, TwoWire *wire = &Wire);
+  SPIKeyPad(int cs);
+  SPIKeyPad(int cs, SPIClass* spi);
+  SPIKeyPad(int cs, int address, SPIClass* spi);
+  ~SPIKeyPad();
 
-  //  call Wire.begin() first!
+  //  initialize SPI before calling begin()
   bool     begin();
   bool     isConnected();
   uint8_t  getAddress();
@@ -59,7 +62,8 @@ public:
 
 
 protected:
-  uint8_t  _address;
+  MCP23S08* _io;
+
   uint8_t  _lastKey;
   uint8_t  _mode;
   uint8_t  _read(uint8_t mask);
@@ -70,9 +74,7 @@ protected:
   uint8_t  _getKey5x3();
   uint8_t  _getKey6x2();
   uint8_t  _getKey8x1();
-
-  TwoWire* _wire;
-
+  
   char *  _keyMap = NULL;
 };
 
