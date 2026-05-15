@@ -41,12 +41,12 @@ See the conceptual schema below.
 It might take some trying to get the correct pins connected.
 
 ```
-          PROC             PCF8574               KEYPAD
+          PROC             MCP23S08              KEYPAD
         +--------+        +---------+          +---------+
         |        |        |       0 |<-------->| R       |
-        |    SDA |<------>|       1 |<-------->| O       |
-        |    SCL |------->|       2 |<-------->| W       |
-        |        |        |       3 |<-------->| S       |
+        |     IN |<------>|       1 |<-------->| O       |
+        |    OUT |------->|       2 |<-------->| W       |
+        |    CLK |------->|       3 |<-------->| S       |
         |        |        |         |          |         |
         |        |        |       4 |<-------->| C       |
         |        |        |       5 |<-------->| O       |

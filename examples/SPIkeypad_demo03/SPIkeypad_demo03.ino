@@ -2,43 +2,43 @@
 //    FILE: I2CKeyPad_demo03.ino
 //  AUTHOR: Rob Tillaart
 // PURPOSE: demo reading a larger value from the keyPad
-//     URL: https://github.com/RobTillaart/I2CKeyPad
+//     URL: https://github.com/RobTillaart/SPIKeyPad
 //
-//  PCF8574
+//  MCP23S08
 //    pin p0-p3 rows
 //    pin p4-p7 columns
 //  4x4 or smaller keypad.
 
 
-#include "Wire.h"
-#include "I2CKeyPad.h"
+#include "SPIKeyPad.h"
 
-const uint8_t KEYPAD_ADDRESS = 0x38;
+constexpr uint8_t SELECT = 10;
+constexpr uint8_t SDOUT = 11;    //  MOSI
+constexpr uint8_t SDIN = 12;     //  MISO
+constexpr uint8_t SCLOCK = 13;   //  CLK
 
-I2CKeyPad keyPad(KEYPAD_ADDRESS);
+SPIKeyPad keyPad(SELECT);
+//  SPIKeyPad keyPad(SELECT, SDIN, SDOUT, SCLOCK, 0);
 
 uint32_t start, stop;
 uint32_t lastKeyPressed = 0;
 uint32_t value = 0;
-
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println();
   Serial.println(__FILE__);
-  Serial.print("I2C_KEYPAD_LIB_VERSION: ");
-  Serial.println(I2C_KEYPAD_LIB_VERSION);
+  Serial.print("SPI_KEYPAD_LIB_VERSION: ");
+  Serial.println(SPI_KEYPAD_LIB_VERSION);
   Serial.println();
 
-  Wire.begin();
-  Wire.setClock(400000);
-
-  if (keyPad.begin() == false)
+  if (keyPad.usesHWSPI())
   {
-    Serial.println("\nERROR: cannot communicate to keypad.\nPlease reboot.\n");
-    while(1);
+    SPI.begin();
   }
+
+  keyPad.begin();
 }
 
 
@@ -114,4 +114,3 @@ char handleKeyPadValue(uint32_t &value)
 
 
 //  -- END OF FILE --
-

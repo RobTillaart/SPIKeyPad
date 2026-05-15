@@ -1,33 +1,33 @@
 //
-//    FILE: I2CKeypad_interrupts_1.ino
+//    FILE: SPIKeypad_interrupts_1.ino
 //  AUTHOR: Rob Tillaart
 // PURPOSE: demo interrupt checking keyPressed
-//     URL: https://github.com/RobTillaart/I2CKeyPad
+//     URL: https://github.com/RobTillaart/SPIKeyPad
 //
-//  interrupts are supported since version 0.2.1
+//  TO TEST WITH HW
+//
+//  interrupts are supported since version x.x.x
 //  this sketch show usage and some comparison with polling.
 //
-//   KEYPAD   PCF8574     UNO
+//   KEYPAD   MCP23S08    UNO R3
 //   rows     p0-p3
 //   columns  p4-p7
 //            IRQ         pin 2
-//            SDA         A4
-//            SCL         A5
+//            1           SPI CLOCK
+//            2           SPI MOSI
+//            3           SPI MISO
 //  4x4 or smaller keypad.
 
 
 //  notes
-//  an interrupt takes less than 10 micros() on an UNO
+//  an interrupt takes less than 10 micros() on an UNO R3
 //  source - https://forum.arduino.cc/t/how-fast-can-i-interrupt/25884/6
-//
-//  At I2C 100KHz one polling takes 472 micros() on an UNO
-//  this is at least 50x longer than handling a single interrupt.
 //
 //  Given that the interrupt is executed once per press/release and
 //  polling at e.g 10Hz (to stay reactive) adds up both in CPU time used
-//  and also in occupation of the I2C bus.
+//  and also in occupation of the SPI bus.
 //
-//  The PCF8574 will generate an interrupt both on press and release.
+//  The MCP23S08 will generate an interrupt both on press and release.
 //  So this code reads the keypad on both signals!
 //
 //  Note: depending on keypad used some bouncing may occur
@@ -43,12 +43,17 @@
 //
 //
 //
-#include "Wire.h"
-#include "I2CKeyPad.h"
 
+#include "SPIKeyPad.h"
 
-const uint8_t KEYPAD_ADDRESS = 0x20;
-I2CKeyPad keyPad(KEYPAD_ADDRESS);
+constexpr uint8_t SELECT = 10;
+constexpr uint8_t SDOUT = 11;    //  MOSI
+constexpr uint8_t SDIN = 12;     //  MISO
+constexpr uint8_t SCLOCK = 13;   //  CLK
+
+SPIKeyPad keyPad(SELECT);
+//  SPIKeyPad keyPad(SELECT, SDIN, SDOUT, SCLOCK, 0);
+
 char keys[] = "123A456B789C*0#DNF";  //  N = NoKey, F = Fail (e.g. > 1 keys pressed)
 
 //  volatile for IRQ variable
@@ -66,28 +71,24 @@ void setup()
   Serial.begin(115200);
   Serial.println();
   Serial.println(__FILE__);
-  Serial.print("I2C_KEYPAD_LIB_VERSION: ");
-  Serial.println(I2C_KEYPAD_LIB_VERSION);
+  Serial.print("SPI_KEYPAD_LIB_VERSION: ");
+  Serial.println(SPI_KEYPAD_LIB_VERSION);
   Serial.println();
 
 
-  //  NOTE: PCF8574 will generate an interrupt on key press and release.
+  //  NOTE: MCP23S08 will generate an interrupt on key press and release.
   pinMode(3, INPUT_PULLUP);
   attachInterrupt(1, keyChanged, FALLING);
   keyChange = false;
 
-  Wire.begin();
-  Wire.setClock(100000);
-
-  if (keyPad.begin() == false)
+  if (keyPad.usesHWSPI())
   {
-    Serial.println("\nERROR: cannot communicate to keypad.\nPlease reboot.\n");
-    while (1);
+    SPI.begin();
   }
 
-  keyPad.setDebounceThreshold(50);
+  keyPad.begin();
 
-  measurePolling();
+  keyPad.setDebounceThreshold(50);
 }
 
 
@@ -97,7 +98,7 @@ void loop()
   {
     uint8_t index = keyPad.getKey();
     //  ignore key bounces
-    if (index == I2C_KEYPAD_THRESHOLD)
+    if (index == SPI_KEYPAD_THRESHOLD)
         return;
     //  only after keyChange is handled it is time reset the flag
     keyChange = false;
@@ -115,42 +116,6 @@ void loop()
 }
 
 
-void measurePolling()
-{
-  //  measure time to check isPressed() by polling.
-
-  //  CLOCK      TIME (us)
-  //  ---------------------
-  //  100K       472
-  //  200K       268
-  //  300K       200
-  //  400K       168
-  //  500K       152
-  //  600K       136
-  //  700K       124
-  //  800K       error
-  for (uint32_t clock = 100000; clock <= 800000; clock += 100000)
-  {
-    Wire.setClock(clock);
-    for (int i = 0; i < 1; i++)
-    {
-      //  reference time for keyPressed check UNO ~
-      uint32_t start = micros();
-      uint8_t index = keyPad.isPressed();
-      uint32_t stop = micros();
-
-      Serial.print(clock);
-      Serial.print("\t");
-      Serial.print(index);
-      Serial.print("\t");
-      Serial.print(keys[index]);
-      Serial.print("\t");
-      Serial.println(stop - start);
-      delay(10);
-    }
-  }
-}
 
 
 //  -- END OF FILE --
-

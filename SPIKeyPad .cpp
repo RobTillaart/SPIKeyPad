@@ -9,13 +9,54 @@
 
 #include "SPIKeyPad.h"
 
+//  Registers                           //  description              datasheet P9
+#define MCP23x08_DDR_A          0x00    //  Data Direction Register A   P 10
+#define MCP23x08_POL_A          0x01    //  Input Polarity A            P 11
+#define MCP23x08_PUR_A          0x06    //  Pull Up Resistors A         P 16
+#define MCP23x08_GPIO_A         0x09    //  General Purpose IO A        P 19
 
-SPIKeyPad::SPIKeyPad(const uint8_t deviceAddress, TwoWire *wire)
+//  SOFTWARE SPI
+SPIKeyPad::SPIKeyPad(uint8_t select, uint8_t dataIn, uint8_t dataOut, uint8_t clock, uint8_t address)
 {
-  _lastKey = I2C_KEYPAD_NOKEY;
-  _address = deviceAddress;
-  _wire    = wire;
-  _mode    = I2C_KEYPAD_4x4;
+  _address = (address << 1);
+  _select  = select;
+  _dataIn  = dataIn;
+  _dataOut = dataOut;
+  _clock   = clock;
+  _hwSPI   = false;
+
+  _lastKey = SPI_KEYPAD_NOKEY;
+  _mode    = SPI_KEYPAD_4x4;
+  _debounceThreshold = 0;
+  _lastTimeRead      = 0;
+}
+
+
+//  HARDWARE SPI
+SPIKeyPad::SPIKeyPad(int select, __SPI_CLASS__ * spi)
+{
+  _address = 0x00;
+  _select  = select;
+  _mySPI   = spi;
+  _hwSPI   = true;
+
+  _lastKey = SPI_KEYPAD_NOKEY;
+  _mode    = SPI_KEYPAD_4x4;
+  _debounceThreshold = 0;
+  _lastTimeRead      = 0;
+}
+
+
+//  HARDWARE SPI
+SPIKeyPad::SPIKeyPad(int select, int address, __SPI_CLASS__ * spi)
+{
+  _address = (address << 1);
+  _select  = select;
+  _mySPI   = spi;
+  _hwSPI   = true;
+
+  _lastKey = SPI_KEYPAD_NOKEY;
+  _mode    = SPI_KEYPAD_4x4;
   _debounceThreshold = 0;
   _lastTimeRead      = 0;
 }
@@ -23,22 +64,46 @@ SPIKeyPad::SPIKeyPad(const uint8_t deviceAddress, TwoWire *wire)
 
 bool SPIKeyPad::begin()
 {
-  //  enable interrupts
-  _read(0xF0);
-  return isConnected();
-}
+  ::pinMode(_select, OUTPUT);
+  ::digitalWrite(_select, HIGH);
 
+  //  8 MHz - datasheet page 8
+  _spi_settings = SPISettings(_SPIspeed, MSBFIRST, SPI_MODE0);
 
-bool SPIKeyPad::isConnected()
-{
-  _wire->beginTransmission(_address);
-  return (_wire->endTransmission() == 0);
+  if (_hwSPI)
+  {
+    //  _mySPI->end();
+    //  _mySPI->begin();
+  }
+  else
+  {
+    ::pinMode(_dataIn,  INPUT);
+    ::pinMode(_dataOut, OUTPUT);
+    ::pinMode(_clock,   OUTPUT);
+    ::digitalWrite(_dataOut, LOW);
+    ::digitalWrite(_clock,   LOW);
+  }
+
+  //  disable address increment (datasheet P20
+  //    SEQOP: Sequential Operation mode bit
+  //    1 = Sequential operation disabled, address pointer does not increment.
+  //    0 = Sequential operation enabled, address pointer increments.
+  //  if (! writeReg(MCP23x08_IOCR, MCP23S08_IOCR_SEQOP)) return false;
+
+  //  Force INPUT_PULLUP
+  if (! writeReg(MCP23x08_PUR_A, 0xFF)) return false;   //  0xFF == all UP
+  //  Force POLARITY
+  if (! writeReg(MCP23x08_POL_A, 0xFF)) return false;   //  0xFF == all inverted
+  //  set all pins LOW
+  if (! writeReg(MCP23x08_GPIO_A, 0x00))return false;
+
+  return true;
 }
 
 
 uint8_t SPIKeyPad::getAddress()
 {
-  return _address;
+  return (_address >> 1);
 }
 
 
@@ -49,17 +114,17 @@ uint8_t SPIKeyPad::getKey()
   {
     if (now - _debounceThreshold < _lastTimeRead)
     {
-      return I2C_KEYPAD_THRESHOLD;
+      return SPI_KEYPAD_THRESHOLD;
     }
   }
 
-  uint8_t key = 0;
-  if      (_mode == I2C_KEYPAD_5x3) key = _getKey5x3();
-  else if (_mode == I2C_KEYPAD_6x2) key = _getKey6x2();
-  else if (_mode == I2C_KEYPAD_8x1) key = _getKey8x1();
-  else                              key = _getKey4x4();  //  default.
+  uint8_t key = _getKey4x4();
+  //  if      (_mode == SPI_KEYPAD_5x3) key = _getKey5x3();
+  //  else if (_mode == SPI_KEYPAD_6x2) key = _getKey6x2();
+  //  else if (_mode == SPI_KEYPAD_8x1) key = _getKey8x1();
+  //  else                              key = _getKey4x4();  //  default.
 
-  if (key == I2C_KEYPAD_FAIL) return key;  //  propagate error.
+  if (key == SPI_KEYPAD_FAIL) return key;  //  propagate error.
   //  valid keys + NOKEY
   _lastKey = key;
   _lastTimeRead = now;
@@ -76,20 +141,20 @@ uint8_t SPIKeyPad::getLastKey()
 //  to check "press any key"
 bool SPIKeyPad::isPressed()
 {
-  uint8_t a = _read(0xF0);
+  uint8_t a = readReg(MCP23x08_GPIO_A);    
   if (a == 0xFF) return false;
-  return (a != 0xF0);
+  return (a != 0x00);
 }
 
 
 uint8_t SPIKeyPad::getChar()
 {
   uint8_t key = getKey();
-  if (key != I2C_KEYPAD_THRESHOLD)
+  if (key != SPI_KEYPAD_THRESHOLD)
   {
     return _keyMap[key];
   }
-  return I2C_KEYPAD_THRESHOLD;
+  return SPI_KEYPAD_THRESHOLD;
 }
 
 
@@ -107,14 +172,15 @@ void SPIKeyPad::loadKeyMap(char * keyMap)
 
 void SPIKeyPad::setKeyPadMode(uint8_t mode)
 {
-  if ((mode == I2C_KEYPAD_5x3) ||
-      (mode == I2C_KEYPAD_6x2) ||
-      (mode == I2C_KEYPAD_8x1))
-  {
-    _mode = mode;
-    return;
-  }
-  _mode = I2C_KEYPAD_4x4;
+  //  To investigate
+  // if ((mode == SPI_KEYPAD_5x3) ||
+      // (mode == SPI_KEYPAD_6x2) ||
+      // (mode == SPI_KEYPAD_8x1))
+  // {
+    // _mode = mode;
+    // return;
+  // }
+  _mode = SPI_KEYPAD_4x4;
 }
 
 
@@ -146,20 +212,87 @@ uint32_t SPIKeyPad::getLastTimeRead()
 //
 //  PROTECTED
 //
+
+//  low level read / write masks
+#define MCP23S08_WRITE_REG    0x40
+#define MCP23S08_READ_REG     0x41
+
+
+bool SPIKeyPad::writeReg(uint8_t reg, uint8_t value)
+{
+//  start write
+  ::digitalWrite(_select, LOW);
+  if (_hwSPI)
+  {
+    _mySPI->beginTransaction(_spi_settings);
+    //  _address already shifted
+    _mySPI->transfer(MCP23S08_WRITE_REG | _address );
+    _mySPI->transfer(reg);
+    _mySPI->transfer(value);
+    _mySPI->endTransaction();
+  }
+  else
+  {
+    //  _address already shifted
+    swSPI_transfer(MCP23S08_WRITE_REG | _address );
+    swSPI_transfer(reg);
+    swSPI_transfer(value);
+  }
+  ::digitalWrite(_select, HIGH);
+  return true;
+}
+
+
+uint8_t SPIKeyPad::readReg(uint8_t reg)
+{
+  uint8_t rv = 0;
+
+//  start read
+  ::digitalWrite(_select, LOW);
+  if (_hwSPI)
+  {
+    _mySPI->beginTransaction(_spi_settings);
+    //  _address already shifted
+    _mySPI->transfer(MCP23S08_READ_REG | _address );  // TODO OPTIMIZE n times
+    _mySPI->transfer(reg);
+    rv = _mySPI->transfer(0xFF);
+    _mySPI->endTransaction();
+  }
+  else
+  {
+    //  _address already shifted
+    swSPI_transfer(MCP23S08_READ_REG | _address );
+    swSPI_transfer(reg);
+    rv = swSPI_transfer(0xFF);
+  }
+  ::digitalWrite(_select, HIGH);
+  return rv;
+}
+
+
+uint8_t  SPIKeyPad::swSPI_transfer(uint8_t value)
+{
+  uint8_t clk = _clock;
+  uint8_t dao = _dataOut;
+  uint8_t dai = _dataIn;
+
+  uint8_t rv = 0;
+  for (uint8_t mask = 0x80; mask > 0; mask >>= 1)
+  {
+    ::digitalWrite(dao, (value & mask) ? HIGH : LOW);
+    ::digitalWrite(clk, HIGH);
+    if (::digitalRead(dai) == HIGH) rv |= mask;
+    ::digitalWrite(clk, LOW);
+  }
+  return rv;
+}
+
+
+
 uint8_t SPIKeyPad::_read(uint8_t mask)
 {
-  //  improve the odds that IO will not interrupted.
-  yield();
-
-  _wire->beginTransmission(_address);
-  _wire->write(mask);
-  if (_wire->endTransmission() != 0)
-  {
-    //  set communication error
-    return 0xFF;
-  }
-  _wire->requestFrom(_address, (uint8_t)1);
-  return _wire->read();
+  writeReg(MCP23x08_DDR_A, mask);
+  return readReg(MCP23x08_GPIO_A);
 }
 
 
@@ -169,29 +302,30 @@ uint8_t SPIKeyPad::_getKey4x4()
   uint8_t key = 0;
 
   //  mask = 4 rows as input pull up, 4 columns as output
-  uint8_t rows = _read(0xF0);
+  uint8_t rows = _read(0x0F);
   //  check if single line has gone low.
-  if (rows == 0xF0)      return I2C_KEYPAD_NOKEY;
-  else if (rows == 0xE0) key = 0;
-  else if (rows == 0xD0) key = 1;
-  else if (rows == 0xB0) key = 2;
-  else if (rows == 0x70) key = 3;
-  else return I2C_KEYPAD_FAIL;
+  if      (rows == 0x00) return SPI_KEYPAD_NOKEY;
+  else if (rows == 0x01) key = 0;
+  else if (rows == 0x02) key = 1;
+  else if (rows == 0x04) key = 2;
+  else if (rows == 0x08) key = 3;
+  else return SPI_KEYPAD_FAIL;
 
   //  4 columns as input pull up, 4 rows as output
-  uint8_t cols = _read(0x0F);
+  uint8_t cols = _read(0xF0);
   //  check if single line has gone low.
-  if (cols == 0x0F)      return I2C_KEYPAD_NOKEY;
-  else if (cols == 0x0E) key += 0;
-  else if (cols == 0x0D) key += 4;
-  else if (cols == 0x0B) key += 8;
-  else if (cols == 0x07) key += 12;
-  else return I2C_KEYPAD_FAIL;
+  if      (cols == 0x00) return SPI_KEYPAD_NOKEY;
+  else if (cols == 0x10) key += 0;
+  else if (cols == 0x20) key += 4;
+  else if (cols == 0x40) key += 8;
+  else if (cols == 0x80) key += 12;
+  else return SPI_KEYPAD_FAIL;
 
   return key;   //  0..15
 }
 
 
+/*  TO INVESTIGATE
 //  not tested
 uint8_t SPIKeyPad::_getKey5x3()
 {
@@ -201,22 +335,22 @@ uint8_t SPIKeyPad::_getKey5x3()
   //  mask = 5 rows as input pull up, 3 columns as output
   uint8_t rows = _read(0xF8);
   //  check if single line has gone low.
-  if (rows == 0xF8)      return I2C_KEYPAD_NOKEY;
+  if (rows == 0xF8)      return SPI_KEYPAD_NOKEY;
   else if (rows == 0xF0) key = 0;
   else if (rows == 0xE8) key = 1;
   else if (rows == 0xD8) key = 2;
   else if (rows == 0xB8) key = 3;
   else if (rows == 0x78) key = 4;
-  else return I2C_KEYPAD_FAIL;
+  else return SPI_KEYPAD_FAIL;
 
   // 3 columns as input pull up, 5 rows as output
   uint8_t cols = _read(0x07);
   // check if single line has gone low.
-  if (cols == 0x07)      return I2C_KEYPAD_NOKEY;
+  if (cols == 0x07)      return SPI_KEYPAD_NOKEY;
   else if (cols == 0x06) key += 0;
   else if (cols == 0x05) key += 5;
   else if (cols == 0x03) key += 10;
-  else return I2C_KEYPAD_FAIL;
+  else return SPI_KEYPAD_FAIL;
 
   return key;   //  0..14
 }
@@ -231,22 +365,22 @@ uint8_t SPIKeyPad::_getKey6x2()
   //  mask = 6 rows as input pull up, 2 columns as output
   uint8_t rows = _read(0xFC);
   //  check if single line has gone low.
-  if (rows == 0xFC)      return I2C_KEYPAD_NOKEY;
+  if (rows == 0xFC)      return SPI_KEYPAD_NOKEY;
   else if (rows == 0xF8) key = 0;
   else if (rows == 0xF4) key = 1;
   else if (rows == 0xEC) key = 2;
   else if (rows == 0xDC) key = 3;
   else if (rows == 0xBC) key = 4;
   else if (rows == 0x7C) key = 5;
-  else return I2C_KEYPAD_FAIL;
+  else return SPI_KEYPAD_FAIL;
 
   //  2 columns as input pull up, 6 rows as output
   uint8_t cols = _read(0x03);
   //  check if single line has gone low.
-  if (cols == 0x03)      return I2C_KEYPAD_NOKEY;
+  if (cols == 0x03)      return SPI_KEYPAD_NOKEY;
   else if (cols == 0x02) key += 0;
   else if (cols == 0x01) key += 6;
-  else return I2C_KEYPAD_FAIL;
+  else return SPI_KEYPAD_FAIL;
 
   return key;   //  0..11
 }
@@ -261,7 +395,7 @@ uint8_t SPIKeyPad::_getKey8x1()
   //  mask = 8 rows as input pull up, 0 columns as output
   uint8_t rows = _read(0xFF);
   //  check if single line has gone low.
-  if (rows == 0xFF)      return I2C_KEYPAD_NOKEY;
+  if (rows == 0xFF)      return SPI_KEYPAD_NOKEY;
   else if (rows == 0xFE) key = 0;
   else if (rows == 0xFD) key = 1;
   else if (rows == 0xFB) key = 2;
@@ -270,11 +404,11 @@ uint8_t SPIKeyPad::_getKey8x1()
   else if (rows == 0xDF) key = 5;
   else if (rows == 0xBF) key = 6;
   else if (rows == 0x7F) key = 7;
-  else return I2C_KEYPAD_FAIL;
+  else return SPI_KEYPAD_FAIL;
 
   return key;   //  0..7
 }
-
+*/
 
 //  -- END OF FILE --
 

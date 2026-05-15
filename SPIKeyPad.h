@@ -27,10 +27,26 @@
 #define SPI_KEYPAD_8x1            81
 
 
+#ifndef __SPI_CLASS__
+  //  MBED must be tested before RP2040
+  #if defined(ARDUINO_ARCH_MBED)
+  #define __SPI_CLASS__   SPIClass
+  #elif defined(ARDUINO_ARCH_RP2040)
+  #define __SPI_CLASS__   SPIClassRP2040
+  #else
+  #define __SPI_CLASS__   SPIClass
+  #endif
+#endif
+
+
 class SPIKeyPad
 {
 public:
-  SPIKeyPad(const uint8_t deviceAddress, TwoWire *wire = &Wire);
+  //       SOFTWARE SPI
+  SPIKeyPad(uint8_t select, uint8_t dataIn, uint8_t dataOut, uint8_t clock, uint8_t address = 0x00);
+  //       HARDWARE SPI
+  SPIKeyPad(int select, __SPI_CLASS__* spi);
+  SPIKeyPad(int select, int address = 0x00, __SPI_CLASS__* spi = &SPI);
 
   //  call Wire.begin() first!
   bool     begin();
@@ -57,9 +73,30 @@ public:
   uint16_t getDebounceThreshold();
   uint32_t getLastTimeRead();
 
+  //       SPI
+  //       speed in Hz
+  void     setSPIspeed(uint32_t speed);
+  uint32_t getSPIspeed() { return _SPIspeed; };
+  bool     usesHWSPI()   { return _hwSPI; };
+
 
 protected:
-  uint8_t  _address;
+  bool     writeReg(uint8_t reg, uint8_t value);
+  uint8_t  readReg(uint8_t reg);
+
+  uint8_t  _address = 0;
+  uint8_t  _select  = 0;
+  uint8_t  _dataOut = 0;
+  uint8_t  _dataIn  = 0;
+  uint8_t  _clock   = 0;
+
+  bool     _hwSPI = true;
+  //       10 MHz is maximum, 8 is a better clock divider on AVR.
+  uint32_t    _SPIspeed = 8000000;
+  __SPI_CLASS__ * _mySPI;
+  SPISettings     _spi_settings;
+  uint8_t  swSPI_transfer(uint8_t val);
+
   uint8_t  _lastKey;
   uint8_t  _mode;
   uint8_t  _read(uint8_t mask);
@@ -67,11 +104,11 @@ protected:
   uint32_t _lastTimeRead;
 
   uint8_t  _getKey4x4();
+  /*
   uint8_t  _getKey5x3();
   uint8_t  _getKey6x2();
   uint8_t  _getKey8x1();
-
-  TwoWire* _wire;
+  */
 
   char *  _keyMap = NULL;
 };
