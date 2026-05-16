@@ -4,7 +4,7 @@
 // PURPOSE: demo interrupt checking keyPressed
 //     URL: https://github.com/RobTillaart/SPIKeyPad
 //
-//  TO TEST WITH HW
+//  TO TEST WITH HW - NOT WORKING YET
 //
 //  interrupts are supported since version x.x.x
 //  this sketch show usage and some comparison with polling.

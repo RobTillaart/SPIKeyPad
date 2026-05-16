@@ -259,12 +259,11 @@ See examples.
 
 - update documentation
 - keep in sync with I2CKeypad / I2CKeypad8x8
-- test interrupt examples 
+- support interrupt example
 
 #### Should
 
-- test 
-- SPI_KEYPAD_7x1 ??  (one pin serves as GND)
+- test more
 
 #### Could
 
