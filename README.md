@@ -71,7 +71,22 @@ It might take some experimenting to get the pins connected correctly.
 ```
 
 
+## Performance
 
+Indicative performance measurements UNO R3, IDE 1.8.19,
+measured with - I2CKeyPad_demo03.ino
+
+|  SPI (MHz)  |  no key pressed |  key pressed  |
+|:-----------:|:---------------:|:-------------:|
+|    1 MHz    |    100 us       |    180 us     |
+|    2 MHz    |     76 us       |    136 us     |
+|    4 MHz    |     64 us       |    112 us     |
+|    8 MHz    |     60 us       |    100 us     |
+|   SW SPI    |    908 us       |   1808 us     |
+
+Note: SW SPI could be optimized for AVR by using low level IO,
+however it can still do ~500 reads per second.
+ 
 
 ## Interface
 
@@ -201,6 +216,13 @@ If a debounce threshold is set, and **getKey()** or **getChar()** is called too 
 these functions will return **SPI_KEYPAD_THRESHOLD** (255).
 
 Feedback welcome!
+
+
+### SPI
+
+- **void setSPIspeed(uint32_t speed)** set hardware speed (8Mb default).
+- **uint32_t getSPIspeed()** returns set speed.
+- **bool usesHWSPI()** returns true = hardware SPI, false = software SPI.
 
 
 ### Basic working

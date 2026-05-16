@@ -14,17 +14,18 @@
 
 #define SPI_KEYPAD_LIB_VERSION    (F("0.1.0"))
 
-#define SPI_KEYPAD_NOKEY          16
-#define SPI_KEYPAD_FAIL           17
-//
-#define SPI_KEYPAD_THRESHOLD      255
+
+//  KEYPAD SPECIAL "KEY VALUES"
+constexpr uint8_t SPI_KEYPAD_NOKEY     = 16;
+constexpr uint8_t SPI_KEYPAD_FAIL      = 17;
+constexpr uint8_t SPI_KEYPAD_THRESHOLD = 255;
 
 
-//  experimental
-#define SPI_KEYPAD_4x4            44
-#define SPI_KEYPAD_5x3            53
-#define SPI_KEYPAD_6x2            62
-#define SPI_KEYPAD_8x1            81
+//  KEYPAD LAYOUTS
+constexpr uint8_t SPI_KEYPAD_4x4 = 44;
+constexpr uint8_t SPI_KEYPAD_5x3 = 53;
+constexpr uint8_t SPI_KEYPAD_6x2 = 62;
+constexpr uint8_t SPI_KEYPAD_8x1 = 81;
 
 
 #ifndef __SPI_CLASS__

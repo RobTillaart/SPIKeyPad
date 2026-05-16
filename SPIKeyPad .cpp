@@ -9,11 +9,12 @@
 
 #include "SPIKeyPad.h"
 
-//  MCP23S08 Registers          //  description              datasheet P9
-#define MCP23x08_DDR_A    0x00  //  Data Direction Register A   P 10
-#define MCP23x08_POL_A    0x01  //  Input Polarity A            P 11
-#define MCP23x08_PUR_A    0x06  //  Pull Up Resistors A         P 16
-#define MCP23x08_GPIO_A   0x09  //  General Purpose IO A        P 19
+//                MCP23S08 Registers       //  description              datasheet P9
+constexpr uint8_t MCP23x08_DDR_A  = 0x00;  //  Data Direction Register A   P 10
+constexpr uint8_t MCP23x08_POL_A  = 0x01;  //  Input Polarity A            P 11
+constexpr uint8_t MCP23x08_PUR_A  = 0x06;  //  Pull Up Resistors A         P 16
+constexpr uint8_t MCP23x08_GPIO_A = 0x09;  //  General Purpose IO A        P 19
+
 
 //  SOFTWARE SPI
 SPIKeyPad::SPIKeyPad(uint8_t select, uint8_t dataIn, uint8_t dataOut, uint8_t clock, uint8_t address)
@@ -84,12 +85,6 @@ bool SPIKeyPad::begin()
     ::digitalWrite(_clock,   LOW);
   }
 
-  //  disable address increment (datasheet P20
-  //    SEQOP: Sequential Operation mode bit
-  //    1 = Sequential operation disabled, address pointer does not increment.
-  //    0 = Sequential operation enabled, address pointer increments.
-  //  if (! writeReg(MCP23x08_IOCR, MCP23S08_IOCR_SEQOP)) return false;
-
   //  Force INPUT_PULLUP
   if (! writeReg(MCP23x08_PUR_A, 0xFF)) return false;   //  0xFF == all UP
   //  Force POLARITY
@@ -149,6 +144,7 @@ bool SPIKeyPad::isPressed()
 
 uint8_t SPIKeyPad::getChar()
 {
+  //  handle no keyMap loaded.
   if (_keyMap == NULL) return 0;
   uint8_t key = getKey();
   if (key != SPI_KEYPAD_THRESHOLD)
@@ -161,6 +157,7 @@ uint8_t SPIKeyPad::getChar()
 
 uint8_t SPIKeyPad::getLastChar()
 {
+  //  handle no keyMap loaded.
   if (_keyMap == NULL) return 0;
   return _keyMap[_lastKey];
 }
@@ -215,8 +212,8 @@ uint32_t SPIKeyPad::getLastTimeRead()
 //
 
 //  low level read / write masks
-#define MCP23S08_WRITE_REG    0x40
-#define MCP23S08_READ_REG     0x41
+constexpr uint8_t MCP23S08_WRITE_REG = 0x40;
+constexpr uint8_t MCP23S08_READ_REG  = 0x41;
 
 
 bool SPIKeyPad::writeReg(uint8_t reg, uint8_t value)
