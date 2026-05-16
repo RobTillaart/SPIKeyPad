@@ -2,7 +2,7 @@
 //
 //    FILE: SPIKeyPad.h
 //  AUTHOR: Rob Tillaart, Chris0xdeadbeef
-// VERSION: 0.1.0
+// VERSION: 0.1.1
 //    DATE: 2026-04-09
 // PURPOSE: Arduino library for 4x4 KeyPad using an SPI MCP23S08
 //     URL: https://github.com/RobTillaart/SPIKeyPad
@@ -12,7 +12,7 @@
 #include "SPI.h"
 
 
-#define SPI_KEYPAD_LIB_VERSION    (F("0.1.0"))
+#define SPI_KEYPAD_LIB_VERSION    (F("0.1.1"))
 
 //  KEYPAD SPECIAL "KEY VALUES"
 /// @brief Returned when no key is pressed
