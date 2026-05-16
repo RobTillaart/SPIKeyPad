@@ -10,7 +10,6 @@
 //  4x4 or smaller keypad.
 //
 //  This demo doesn't use the build in key mapping.
-//  to investigate does not run as intended, (too fast?)
 
 #include "SPIKeyPad.h"
 
