@@ -7,5 +7,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [0.1.0] - 2026-04-09
-- initial version based upon I2CKeyPad
+- initial version based upon I2CKeyPad and MCP23S08 library
 

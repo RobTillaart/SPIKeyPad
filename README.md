@@ -11,25 +11,40 @@
 
 # SPIKeyPad
 
-Arduino library for 4x4 (or smaller) keypad connected to an SPI MCP23S08
+Arduino library for 4x4 (or smaller) keypad connected to an SPI MCP23S08.
 
 
 ## Description
 
-The SPIKeyPad library implements the reading of a 4x4 keypad by means of a PCF8574.
-Smaller keypads, meaning less columns or rows (4x3) can be read with it too.
+**Experimental**
+
+The SPIKeyPad library implements the reading of a 4x4 keypad by means of a MCP23S08.
+Smaller keypads, meaning less columns or rows (4x3) can be read with this library too.
 The library allows a 5x3, 6x2 or 8x1 or smaller keypad to be connected too.
 
+The library is based upon the I2CKeypad library which uses a PCF8574 to read the 
+device. The interface is kept as equal as possible to minimize the effort when  switching between different libraries.
+
+The idea behind this library is to read 4 pins at once for rows and 4 pins at once
+for the columns. In both cases only zero (NoKey) or one bit should be set. 
+
+The MCP23S08 has two address pins, so one could create 4 unique keypads on the SPI
+bus with the same CS (chip select) pin.
+
+Not all functionality has been tested on all different boards, so if problems 
+occur open an issue (or PR) on GitHub.
+
+Feedback as always is welcome.
 
 ### Related
 
 Relates strongly to https://github.com/RobTillaart/I2CKeyPad. which is an 4x4 version using **PCF8574**.
 
-- https://github.com/RobTillaart/PCF8574
-- https://github.com/RobTillaart/AnalogKeypad
-- https://github.com/RobTillaart/I2CKeyPad
-- https://github.com/RobTillaart/I2CKeyPad8x8
-- https://github.com/RobTillaart/SPIKeyPad
+- https://github.com/RobTillaart/MCP23S08 - device used
+- https://github.com/RobTillaart/AnalogKeypad - uses resistor ladder
+- https://github.com/RobTillaart/I2CKeyPad - PCF8574 based keyPad
+- https://github.com/RobTillaart/I2CKeyPad8x8 - PCF8575 based keyPad
+- https://github.com/RobTillaart/SPIKeyPad - this library
 - https://github.com/WK-Software56/AdvKeyPad (derived work with keyboard alike interface)
 - https://www.gammon.com.au/forum/?id=14175
 
@@ -38,7 +53,7 @@ Relates strongly to https://github.com/RobTillaart/I2CKeyPad. which is an 4x4 ve
 
 The MCP23S08 is connected between the processor and the (default) 4x4 keypad.
 See the conceptual schema below.
-It might take some trying to get the correct pins connected.
+It might take some experimenting to get the pins connected correctly.
 
 ```
           PROC             MCP23S08              KEYPAD
@@ -66,23 +81,26 @@ It might take some trying to get the correct pins connected.
 
 ### Constructor
 
-- **SPIKeyPad(const uint8_t deviceAddress, TwoWire \*wire = &Wire)**
-The constructor sets the device address and optionally
-allows to selects the I2C bus to use.
-- **bool begin()** The return value shows if the PCF8574 with the given device address is connected properly.
-Call wire.begin() first!
-- **bool isConnected()** returns false if the device address of the PCF8574 cannot be seen on the I2C bus.
-- **uint8_t getAddress()** returns the set device address.
+The MCP23S08 has two **address** pins, so one could create 4 unique keypads on the SPI
+bus with the same CS (chip select) pin.
+This address needs to be set in the constructor, or defalt address 0x00 is used.
+
+- **SPIKeyPad(uint8_t select, uint8_t dataIn, uint8_t dataOut, uint8_t clock, uint8_t address = 0x00)** Software SPI constructor.
+- **SPIKeyPad(int select, \__SPI_CLASS\__\* spi)** Hardware SPI constructor
+- **SPIKeyPad(int select, int address = 0x00,\__SPI_CLASS\__\* spi = &SPI)** Hardware SPI constructor
+- **bool begin()** initializes the internal parameters. If hardware SPI is used,
+one need to call SPI.begin (or equivalent) before this function.
+- **uint8_t getAddress()** returns the set device address (from constructor).
 
 
 ### getKey
 
 - **uint8_t getKey()** Returns default 0..15 for regular keys,
-Returns **I2C_KEYPAD_NOKEY** (16) if no key is pressed and **I2C_KEYPAD_FAIL**
+Returns **SPI_KEYPAD_NOKEY** (16) if no key is pressed and **SPI_KEYPAD_FAIL**
 (17) in case of an error, e.g. multiple keys pressed.
-If a debounce delay is set, it might return **I2C_KEYPAD_THRESHOLD** if called too fast.
+If a debounce delay is set, it might return **SPI_KEYPAD_THRESHOLD** if called too fast.
 - **uint8_t getLastKey()** Returns the last **valid** key pressed 0..15,
-or **I2C_KEYPAD_NOKEY** (16) which is also the initial value.
+or **SPI_KEYPAD_NOKEY** (16) which is also the initial value.
 - **bool isPressed()** Returns true if one or more keys of the keyPad are pressed,
 however there is no check if multiple keys are pressed.
 
@@ -90,16 +108,16 @@ however there is no check if multiple keys are pressed.
 |  getKey()  |  HEX code    |  Meaning               |  Notes  |
 |:----------:|:------------:|:-----------------------|:--------|
 |  0..15     |  0x00..0x0F  |  valid key pressed     |
-|  16        |  0x10        |  I2C_KEYPAD_NOKEY      |
-|  17        |  0x11        |  I2C_KEYPAD_FAIL       |  multi key or I2C communication error.
-|  255       |  0xFF        |  I2C_KEYPAD_THRESHOLD  |
+|  16        |  0x10        |  SPI_KEYPAD_NOKEY      |
+|  17        |  0x11        |  SPI_KEYPAD_FAIL       |  multi key or communication error.
+|  255       |  0xFF        |  SPI_KEYPAD_THRESHOLD  |
 
 
 ### Mode functions
 
 **Experimental**
 
-- **void setKeyPadMode(uint8_t mode = I2C_KEYPAD_4x4)** sets the mode, default 4x4.
+- **void setKeyPadMode(uint8_t mode = SPI_KEYPAD_4x4)** sets the mode, default 4x4.
 This mode can also be used for 4x3 or 4x2 or 3x3 etc.
 Invalid values for mode are mapped to 4x4.
 - **uint8_t getKeyPadMode()** returns the current mode.
@@ -111,10 +129,10 @@ E.g. a 4x3 keypad can be read in mode 4x4 or in mode 5x3.
 
 |  modi  |  value  |  definition      |  notes    |
 |:------:|:-------:|:-----------------|:----------|
-|  4x4   |    44   |  I2C_KEYPAD_4x4  |  default, also for 4x3 4x2 4x1 3x3 3x2 3x1 etc.
-|  5x3   |    53   |  I2C_KEYPAD_5x3  |  also for 5x2 or 5x1 etc.
-|  6x2   |    62   |  I2C_KEYPAD_6x2  |  also for 6x1 etc.
-|  8x1   |    81   |  I2C_KEYPAD_8x1  |  not real matrix, connect pins to switch to GND.
+|  4x4   |    44   |  SPI_KEYPAD_4x4  |  default, also for 4x3 4x2 4x1 3x3 3x2 3x1 etc.
+|  5x3   |    53   |  SPI_KEYPAD_5x3  |  also for 5x2 or 5x1 etc.
+|  6x2   |    62   |  SPI_KEYPAD_6x2  |  also for 6x1.
+|  8x1   |    81   |  SPI_KEYPAD_8x1  |  not real matrix, connect pins to switch to GND.
 
 
 ### KeyMap functions
@@ -122,12 +140,12 @@ E.g. a 4x3 keypad can be read in mode 4x4 or in mode 5x3.
 Note: **loadKeyMap()** must be called before **getChar()** and **getLastChar()**!
 
 - **char getChar()** returns the char corresponding to mapped key pressed.
-It returns **I2C_KEYPAD_THRESHOLD** if called too fast.
+It returns **SPI_KEYPAD_THRESHOLD** if called too fast.
 - **char getLastChar()** returns the last char pressed.
 This function is not affected by the debounce threshold.
 - **bool loadKeyMap(char \* keyMap)** keyMap should point to a (global) char array of length 19.
 This array maps index 0..15 on a char and index \[16\] maps to **SPIKeyPad_NOKEY** (typical 'N')
-and index \[17\] maps **SPIKeyPad_FAIL** (typical 'F'). index 18 is the null char.
+and index \[17\] maps **SPI_KEYPAD_FAIL** (typical 'F'). index 18 is the null char.
 
 **WARNING**
 
@@ -143,27 +161,27 @@ char diag_keymap[19]    = "1    2    3    4NF";   // diagonal keys only
 ```
 
 In the examples above a 'space' key might be just meant to ignore.
-However functionality there is no limit how one wants to use the key mapping.
-It is even possible to change the mapping runtime after each key.
+However functional there is no limit how one wants to use the key mapping.
+It is even possible to change the mapping runtime after each key press.
 
-Note: a keyMap char array may be longer than 18 characters, but only the first 18 are used.
+Note: a keyMap char array may be longer than 18 characters, 
+but only the first 18 are used.
 The length is **NOT** checked upon loading.
 
-Note: The 5x3, 6x2 and the 8x1 modi also uses a key map of length 18.
+Note: The 5x3, 6x2 and the 8x1 modi also use a key map of length 18.
 
 
 ### Debouncing threshold
 
 **Experimental**
 
-Since version 0.5.0, the library implements an experimental debounce threshold
+The library implements an experimental debounce threshold
 which is non-blocking.
 
 If a key bounces, it can trigger multiple interrupts, while the purpose is to
-act like only one keypress. The debounce threshold results in a fast return
-of **getKey()** (with **I2C_KEYPAD_THRESHOLD**) if called too fast.
+act like only one key press. The debounce threshold results in a fast return
+of **getKey()** (with **SPI_KEYPAD_THRESHOLD**) if called too fast.
 
-The default value of the debounce threshold is zero to be backwards compatible.
 The value is set in milliseconds, with a maximum of 65535 ==> about 65 seconds or 1 minute.
 A value of 1 still allows ~1000 **getKey()** calls per second (in theory).
 A value of 65535 can be used e.g. for a delay after entering a wrong key code / password.
@@ -180,7 +198,7 @@ The default value is zero, to reset its value.
 purposes too. E.g. track time between keypresses.
 
 If a debounce threshold is set, and **getKey()** or **getChar()** is called too fast,
-these functions will return **I2C_KEYPAD_THRESHOLD** (255).
+these functions will return **SPI_KEYPAD_THRESHOLD** (255).
 
 Feedback welcome!
 
@@ -188,22 +206,28 @@ Feedback welcome!
 ### Basic working
 
 After the **keypad.begin()** the sketch calls the **keyPad.getKey()** to read values from the keypad.
-- If no key is pressed **I2C_KEYPAD_NOKEY** code (16) is returned.
-- If the read value is not valid, e.g. two keys pressed, **I2C_KEYPAD_FAIL** code (17) is returned.
-- If a debounce threshold is set, **I2C_KEYPAD_THRESHOLD** might be returned.
+- If no key is pressed **SPI_KEYPAD_NOKEY** code (16) is returned.
+- If the read value is not valid, e.g. two keys pressed, **SPI_KEYPAD_FAIL** code (17) is returned.
+- If a debounce threshold is set, **SPI_KEYPAD_THRESHOLD** might be returned.
 See section above.
 - Otherwise a number 0..15 is returned.
 
 Note NOKEY and FAIL both have bit 4 set, all valid keys don't.
-This allows fast checking for valid keys.
+This allows fast checking for valid keys by masking.
+
+```
+if ((key & 0xF0) == 0x00)  //  handle invalid
+```
 
 Only if a key map is loaded, the user can call **getChar()** and **getLastChar()** to get mapped keys.
 
 
 ## Interrupts
 
-The library enables the PCF8574 to generate interrupts on the PCF8574 when a key is pressed.
-This makes checking the keypad far more efficient as one does not need to poll the device over I2C.
+(not tested yet)
+
+The library enables the MCP23S08 to generate interrupts on the MCP23S08 when a key is pressed.
+This makes checking the keypad far more efficient as one does not need to poll the device over SPI.
 See examples.
 
 
@@ -212,14 +236,15 @@ See examples.
 #### Must
 
 - update documentation
-
+- keep in sync with I2CKeypad / I2CKeypad8x8
+- test interrupt examples 
 
 #### Should
 
 - test 
+- SPI_KEYPAD_7x1 ??  (one pin serves as GND)
 
 #### Could
-
 
 
 #### Wont

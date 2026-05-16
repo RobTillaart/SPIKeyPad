@@ -48,9 +48,8 @@ public:
   SPIKeyPad(int select, __SPI_CLASS__* spi);
   SPIKeyPad(int select, int address = 0x00, __SPI_CLASS__* spi = &SPI);
 
-  //  call Wire.begin() first!
+  //  call SPI.begin() first if HW SPI is used
   bool     begin();
-  bool     isConnected();
   uint8_t  getAddress();
 
   //  get raw key's 0..15
@@ -104,11 +103,11 @@ protected:
   uint32_t _lastTimeRead;
 
   uint8_t  _getKey4x4();
-  /*
+
   uint8_t  _getKey5x3();
   uint8_t  _getKey6x2();
   uint8_t  _getKey8x1();
-  */
+
 
   char *  _keyMap = NULL;
 };

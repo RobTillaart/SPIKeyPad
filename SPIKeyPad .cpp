@@ -3,17 +3,17 @@
 //  AUTHOR: Rob Tillaart
 // VERSION: 0.1.0
 //    DATE: 2026-04-09
-// PURPOSE: Arduino library for 4x4 KeyPad connected to an SPIMCP23S08
+// PURPOSE: Arduino library for 4x4 KeyPad connected to an SPI MCP23S08
 //     URL: https://github.com/RobTillaart/SPIKeyPad
 
 
 #include "SPIKeyPad.h"
 
-//  Registers                           //  description              datasheet P9
-#define MCP23x08_DDR_A          0x00    //  Data Direction Register A   P 10
-#define MCP23x08_POL_A          0x01    //  Input Polarity A            P 11
-#define MCP23x08_PUR_A          0x06    //  Pull Up Resistors A         P 16
-#define MCP23x08_GPIO_A         0x09    //  General Purpose IO A        P 19
+//  MCP23S08 Registers          //  description              datasheet P9
+#define MCP23x08_DDR_A    0x00  //  Data Direction Register A   P 10
+#define MCP23x08_POL_A    0x01  //  Input Polarity A            P 11
+#define MCP23x08_PUR_A    0x06  //  Pull Up Resistors A         P 16
+#define MCP23x08_GPIO_A   0x09  //  General Purpose IO A        P 19
 
 //  SOFTWARE SPI
 SPIKeyPad::SPIKeyPad(uint8_t select, uint8_t dataIn, uint8_t dataOut, uint8_t clock, uint8_t address)
@@ -118,11 +118,11 @@ uint8_t SPIKeyPad::getKey()
     }
   }
 
-  uint8_t key = _getKey4x4();
-  //  if      (_mode == SPI_KEYPAD_5x3) key = _getKey5x3();
-  //  else if (_mode == SPI_KEYPAD_6x2) key = _getKey6x2();
-  //  else if (_mode == SPI_KEYPAD_8x1) key = _getKey8x1();
-  //  else                              key = _getKey4x4();  //  default.
+  uint8_t key = 0;
+  if      (_mode == SPI_KEYPAD_5x3) key = _getKey5x3();
+  else if (_mode == SPI_KEYPAD_6x2) key = _getKey6x2();
+  else if (_mode == SPI_KEYPAD_8x1) key = _getKey8x1();
+  else                              key = _getKey4x4();  //  default.
 
   if (key == SPI_KEYPAD_FAIL) return key;  //  propagate error.
   //  valid keys + NOKEY
@@ -141,7 +141,7 @@ uint8_t SPIKeyPad::getLastKey()
 //  to check "press any key"
 bool SPIKeyPad::isPressed()
 {
-  uint8_t a = readReg(MCP23x08_GPIO_A);    
+  uint8_t a = readReg(MCP23x08_GPIO_A);
   if (a == 0xFF) return false;
   return (a != 0x00);
 }
@@ -172,14 +172,13 @@ void SPIKeyPad::loadKeyMap(char * keyMap)
 
 void SPIKeyPad::setKeyPadMode(uint8_t mode)
 {
-  //  To investigate
-  // if ((mode == SPI_KEYPAD_5x3) ||
-      // (mode == SPI_KEYPAD_6x2) ||
-      // (mode == SPI_KEYPAD_8x1))
-  // {
-    // _mode = mode;
-    // return;
-  // }
+  if ((mode == SPI_KEYPAD_5x3) ||
+      (mode == SPI_KEYPAD_6x2) ||
+      (mode == SPI_KEYPAD_8x1))
+  {
+    _mode = mode;
+    return;
+  }
   _mode = SPI_KEYPAD_4x4;
 }
 
@@ -325,7 +324,6 @@ uint8_t SPIKeyPad::_getKey4x4()
 }
 
 
-/*  TO INVESTIGATE
 //  not tested
 uint8_t SPIKeyPad::_getKey5x3()
 {
@@ -333,23 +331,23 @@ uint8_t SPIKeyPad::_getKey5x3()
   uint8_t key = 0;
 
   //  mask = 5 rows as input pull up, 3 columns as output
-  uint8_t rows = _read(0xF8);
+  uint8_t rows = _read(0x1F);
   //  check if single line has gone low.
-  if (rows == 0xF8)      return SPI_KEYPAD_NOKEY;
-  else if (rows == 0xF0) key = 0;
-  else if (rows == 0xE8) key = 1;
-  else if (rows == 0xD8) key = 2;
-  else if (rows == 0xB8) key = 3;
-  else if (rows == 0x78) key = 4;
+  if      (rows == 0x00) return SPI_KEYPAD_NOKEY;
+  else if (rows == 0x01) key = 0;
+  else if (rows == 0x02) key = 1;
+  else if (rows == 0x04) key = 2;
+  else if (rows == 0x08) key = 3;
+  else if (rows == 0x10) key = 4;
   else return SPI_KEYPAD_FAIL;
 
   // 3 columns as input pull up, 5 rows as output
-  uint8_t cols = _read(0x07);
+  uint8_t cols = _read(0xE0);
   // check if single line has gone low.
-  if (cols == 0x07)      return SPI_KEYPAD_NOKEY;
-  else if (cols == 0x06) key += 0;
-  else if (cols == 0x05) key += 5;
-  else if (cols == 0x03) key += 10;
+  if      (cols == 0x00) return SPI_KEYPAD_NOKEY;
+  else if (cols == 0x20) key += 0;
+  else if (cols == 0x40) key += 5;
+  else if (cols == 0x80) key += 10;
   else return SPI_KEYPAD_FAIL;
 
   return key;   //  0..14
@@ -363,30 +361,29 @@ uint8_t SPIKeyPad::_getKey6x2()
   uint8_t key = 0;
 
   //  mask = 6 rows as input pull up, 2 columns as output
-  uint8_t rows = _read(0xFC);
+  uint8_t rows = _read(0x3F);
   //  check if single line has gone low.
-  if (rows == 0xFC)      return SPI_KEYPAD_NOKEY;
-  else if (rows == 0xF8) key = 0;
-  else if (rows == 0xF4) key = 1;
-  else if (rows == 0xEC) key = 2;
-  else if (rows == 0xDC) key = 3;
-  else if (rows == 0xBC) key = 4;
-  else if (rows == 0x7C) key = 5;
+  if      (rows == 0x00)  return SPI_KEYPAD_NOKEY;
+  else if (rows == 0x01) key = 0;
+  else if (rows == 0x02) key = 1;
+  else if (rows == 0x04) key = 2;
+  else if (rows == 0x08) key = 3;
+  else if (rows == 0x10) key = 4;
+  else if (rows == 0x20) key = 5;
   else return SPI_KEYPAD_FAIL;
 
   //  2 columns as input pull up, 6 rows as output
-  uint8_t cols = _read(0x03);
+  uint8_t cols = _read(0xC0);
   //  check if single line has gone low.
-  if (cols == 0x03)      return SPI_KEYPAD_NOKEY;
-  else if (cols == 0x02) key += 0;
-  else if (cols == 0x01) key += 6;
+  if      (cols == 0x00) return SPI_KEYPAD_NOKEY;
+  else if (cols == 0x40) key += 0;
+  else if (cols == 0x80) key += 6;
   else return SPI_KEYPAD_FAIL;
 
   return key;   //  0..11
 }
 
 
-//  not tested
 uint8_t SPIKeyPad::_getKey8x1()
 {
   //  key = row
@@ -395,20 +392,20 @@ uint8_t SPIKeyPad::_getKey8x1()
   //  mask = 8 rows as input pull up, 0 columns as output
   uint8_t rows = _read(0xFF);
   //  check if single line has gone low.
-  if (rows == 0xFF)      return SPI_KEYPAD_NOKEY;
-  else if (rows == 0xFE) key = 0;
-  else if (rows == 0xFD) key = 1;
-  else if (rows == 0xFB) key = 2;
-  else if (rows == 0xF7) key = 3;
-  else if (rows == 0xEF) key = 4;
-  else if (rows == 0xDF) key = 5;
-  else if (rows == 0xBF) key = 6;
-  else if (rows == 0x7F) key = 7;
+  if      (rows == 0x00) return SPI_KEYPAD_NOKEY;
+  else if (rows == 0x01) key = 0;
+  else if (rows == 0x02) key = 1;
+  else if (rows == 0x04) key = 2;
+  else if (rows == 0x08) key = 3;
+  else if (rows == 0x10) key = 4;
+  else if (rows == 0x20) key = 5;
+  else if (rows == 0x40) key = 6;
+  else if (rows == 0x80) key = 7;
   else return SPI_KEYPAD_FAIL;
 
   return key;   //  0..7
 }
-*/
+
 
 //  -- END OF FILE --
 

@@ -6,7 +6,6 @@ SPIKeyPad	KEYWORD1
 
 # Methods and Functions (KEYWORD2)
 begin	KEYWORD2
-isConnected	KEYWORD2
 getAddress	KEYWORD2
 
 getKey	KEYWORD2
@@ -22,6 +21,11 @@ getKeyPadMode	KEYWORD2
 
 setDebounceThreshold	KEYWORD2
 getDebounceThreshold	KEYWORD2
+getLastTimeRead	KEYWORD2
+
+setSPIspeed	KEYWORD2
+getSPIspeed	KEYWORD2
+usesHWSPI	KEYWORD2
 
 
 # Instances (KEYWORD2)
