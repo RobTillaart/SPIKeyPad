@@ -7,32 +7,63 @@
 //    GP0–GP3 rows
 //    GP4–GP7 columns
 
-#include <SPIKeyPad.h>
+#include "SPIKeyPad.h"
 
-SPIKeyPad keypad(10); // CS pin
+constexpr uint8_t SELECT = 10;
+constexpr uint8_t SDOUT = 11;    //  MOSI
+constexpr uint8_t SDIN = 12;     //  MISO
+constexpr uint8_t SCLOCK = 13;   //  CLK
+
+SPIKeyPad keyPad(SELECT);
+//  SPIKeyPad keyPad(SELECT, SDIN, SDOUT, SCLOCK, 0);
+
+uint32_t start, stop;
+uint32_t lastKeyPressed = 0;
+
 
 void setup()
 {
-    Serial.begin(115200);
+  Serial.begin(115200);
+  Serial.println();
+  Serial.println(__FILE__);
+  Serial.print("SPI_KEYPAD_LIB_VERSION: ");
+  Serial.println(SPI_KEYPAD_LIB_VERSION);
+  Serial.println();
 
-    Serial.println("SPIKeyPad test");
+  if (keyPad.usesHWSPI())
+  {
+    SPI.begin();
+  }
 
-    if (!keypad.begin())
-    {
-        Serial.println("Failed to initialize keypad!");
-        while (1);
-    }
+  keyPad.begin();
 
-    Serial.println("Keypad initialized.");
+  keyPad.setKeyPadMode(SPI_KEYPAD_4x4);
 }
+
 
 void loop()
 {
-    uint8_t key = keypad.getKey();
+  uint32_t now = millis();
+  //  adjust keyMap if needed
+  char keys[] = "1234567890ABCDE NF";  //  N = NoKey, F = Fail
 
-    if (key != SPIKeyPadLib::NO_KEY)
-    {
-        Serial.print("Key pressed: ");
-        Serial.println(key);
-    }
+  if (now - lastKeyPressed >= 100)
+  {
+    lastKeyPressed = now;
+
+    start = micros();
+    uint8_t index = keyPad.getKey();
+    stop = micros();
+
+    Serial.print(millis());
+    Serial.print("\t");
+    Serial.print(index);
+    Serial.print("\t");
+    Serial.print(keys[index]);
+    Serial.print("\t");
+    Serial.println(stop - start);
+  }
 }
+
+
+//  -- END OF FILE --

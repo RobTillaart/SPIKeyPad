@@ -46,7 +46,7 @@ void setup()
 void loop()
 {
   uint32_t now = millis();
-  //  adjust keymap if needed
+  //  adjust keyMap if needed
   char keys[] = "12345678        NF";  //  N = NoKey, F = Fail
 
   if (now - lastKeyPressed >= 100)
