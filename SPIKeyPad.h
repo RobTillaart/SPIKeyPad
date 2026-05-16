@@ -103,7 +103,6 @@ protected:
   uint32_t _lastTimeRead;
 
   uint8_t  _getKey4x4();
-
   uint8_t  _getKey5x3();
   uint8_t  _getKey6x2();
   uint8_t  _getKey8x1();

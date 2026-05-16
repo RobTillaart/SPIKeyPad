@@ -115,8 +115,6 @@ however there is no check if multiple keys are pressed.
 
 ### Mode functions
 
-**Experimental**
-
 - **void setKeyPadMode(uint8_t mode = SPI_KEYPAD_4x4)** sets the mode, default 4x4.
 This mode can also be used for 4x3 or 4x2 or 3x3 etc.
 Invalid values for mode are mapped to 4x4.
@@ -141,16 +139,18 @@ Note: **loadKeyMap()** must be called before **getChar()** and **getLastChar()**
 
 - **char getChar()** returns the char corresponding to mapped key pressed.
 It returns **SPI_KEYPAD_THRESHOLD** if called too fast.
+Returns zero if no keyMap is loaded.
 - **char getLastChar()** returns the last char pressed.
 This function is not affected by the debounce threshold.
+Returns zero if no keyMap is loaded.
 - **bool loadKeyMap(char \* keyMap)** keyMap should point to a (global) char array of length 19.
-This array maps index 0..15 on a char and index \[16\] maps to **SPIKeyPad_NOKEY** (typical 'N')
+This array maps index 0..15 on a char and index \[16\] maps to **SPI_KEYPAD_NOKEY** (typical 'N')
 and index \[17\] maps **SPI_KEYPAD_FAIL** (typical 'F'). index 18 is the null char.
 
 **WARNING**
 
 If there is no key map loaded the user should **NOT** call **getChar()** or
-**getLastChar()** as these would return meaningless bytes.
+**getLastChar()** as these would return 0.
 
 
 ```cpp

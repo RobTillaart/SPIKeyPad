@@ -149,6 +149,7 @@ bool SPIKeyPad::isPressed()
 
 uint8_t SPIKeyPad::getChar()
 {
+  if (_keyMap == NULL) return 0;
   uint8_t key = getKey();
   if (key != SPI_KEYPAD_THRESHOLD)
   {
@@ -160,6 +161,7 @@ uint8_t SPIKeyPad::getChar()
 
 uint8_t SPIKeyPad::getLastChar()
 {
+  if (_keyMap == NULL) return 0;
   return _keyMap[_lastKey];
 }
 

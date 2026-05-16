@@ -10,7 +10,6 @@
 //  4x4 or smaller keypad.
 //
 //  This demo doesn't use the build in key mapping.
-//  to investigate does not work as intended
 
 
 #include "SPIKeyPad.h"
@@ -92,7 +91,6 @@ int readKeyPadUntil(char until, char * buffer, uint8_t length, uint16_t timeout)
     //  while no key is pressed wait
     while (keymap[keyPad.getKey()] == 'N')
     {
-      delay(1);
       yield();
       if (millis() - start > timeout) return -2;
     }
@@ -103,6 +101,13 @@ int readKeyPadUntil(char until, char * buffer, uint8_t length, uint16_t timeout)
     //  process key pressed
     uint8_t key = keymap[raw];
 
+    //  while key is pressed wait until released
+    while (keymap[keyPad.getKey()] == key)
+    {
+      yield();
+      if (millis() - start > timeout) return -2;
+    }
+
     //  handle end conditions
     if ( key == until) return 0;
     if ( key == 'F') return -1;    //  failed to read;
@@ -111,13 +116,6 @@ int readKeyPadUntil(char until, char * buffer, uint8_t length, uint16_t timeout)
     //  add key to buffer
     buffer[bufferIndex++] = key;
     buffer[bufferIndex] = 0;
-
-    //  while key is pressed wait
-    while (keymap[keyPad.getKey()] == key)
-    {
-      yield();
-      if (millis() - start > timeout) return -2;
-    }
   }
 }
 

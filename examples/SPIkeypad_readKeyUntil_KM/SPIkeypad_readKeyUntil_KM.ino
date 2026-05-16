@@ -89,26 +89,31 @@ int readKeyPadUntil(char until, char * buffer, uint8_t length, uint16_t timeout)
   //  empty the return buffer
   buffer[bufferIndex] = 0;
 
-  while (millis() - start < timeout)
+  while (true)
   {
-    char ch = keyPad.getChar();
-    if (ch == 'N')        lastChar = 'N';
-    else if (ch == until) return 0;       //  success
-    else if (ch == 'F')   return -1;      //  keyPad fail
-    else
+    char ch = 0;
+    //  wait for keypress
+    while ((ch = keyPad.getChar()) == 'N')
     {
-      if (ch != lastChar)
-      {
-        lastChar = ch;
-        if ( bufferIndex == length ) return -3;  //  overflow
-        //  add key to buffer
-        buffer[bufferIndex++] = ch;
-        buffer[bufferIndex]   = 0;
-      }
+      if (millis() - start > timeout) return -2;
     }
+    //  wait for release
+    while (ch == keyPad.getChar())
+    {
+      delay(10);
+      if (millis() - start > timeout) return -2;
+    }
+    if (ch == 'F')   return -1;
+    if (ch == until) return 0;
+    lastChar = ch;
+    if ( bufferIndex == length ) return -3;  //  overflow
+    //  add key to buffer
+    buffer[bufferIndex++] = ch;
+    buffer[bufferIndex]   = 0;
+
     yield();
   }
-  return -2;    //  timeout
+  return -1;
 }
 
 
