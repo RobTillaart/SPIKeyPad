@@ -30,6 +30,7 @@ enum SPIKeyPadState : uint8_t
 /// @brief Supported keypad layouts.
 enum SPIKeyPadMode : uint8_t
 {
+  SPI_KEYPAD_INVALID = 0,
   SPI_KEYPAD_4x4 = 44,
   SPI_KEYPAD_5x3 = 53,
   SPI_KEYPAD_6x2 = 62,
