@@ -108,10 +108,25 @@ uint8_t SPIKeyPad::getKey()
   }
 
   uint8_t key = 0;
-  if      (_mode == SPI_KEYPAD_5x3) key = _getKey5x3();
-  else if (_mode == SPI_KEYPAD_6x2) key = _getKey6x2();
-  else if (_mode == SPI_KEYPAD_8x1) key = _getKey8x1();
-  else                              key = _getKey4x4();  //  default.
+  switch (_mode)
+  {
+    case SPI_KEYPAD_5x3:
+      key = _getKey5x3();
+      break;
+
+    case SPI_KEYPAD_6x2:
+      key = _getKey6x2();
+      break;
+
+    case SPI_KEYPAD_8x1:
+      key = _getKey8x1();
+      break;
+
+    case SPI_KEYPAD_4x4:
+    default:
+      key = _getKey4x4();
+      break;
+  }
 
   if (key == SPI_KEYPAD_FAIL) return key;  //  propagate error.
 
@@ -130,7 +145,7 @@ uint8_t SPIKeyPad::getLastKey() const
 
 
 //  to check "press any key"
-bool SPIKeyPad::isPressed() const
+bool SPIKeyPad::isPressed()
 {
   uint8_t a = readReg(MCP23x08_GPIO_A);
   if (a == 0xFF) return false;
@@ -167,20 +182,25 @@ void SPIKeyPad::loadKeyMap(const char * keyMap)
 }
 
 
-void SPIKeyPad::setKeyPadMode(const uint8_t mode)
+void SPIKeyPad::setKeyPadMode(const SPIKeyPadMode mode)
 {
-  if ((mode == SPI_KEYPAD_5x3) ||
-      (mode == SPI_KEYPAD_6x2) ||
-      (mode == SPI_KEYPAD_8x1))
+  switch (mode)
   {
-    _mode = mode;
-    return;
+    case SPI_KEYPAD_5x3:
+    case SPI_KEYPAD_6x2:
+    case SPI_KEYPAD_8x1:
+    case SPI_KEYPAD_4x4:
+      _mode = mode;
+      break;
+
+    default:
+      _mode = SPI_KEYPAD_4x4;
+      break;
   }
-  _mode = SPI_KEYPAD_4x4;
 }
 
 
-uint8_t SPIKeyPad::getKeyPadMode() const
+SPIKeyPadMode SPIKeyPad::getKeyPadMode() const
 {
   return _mode;
 }
@@ -372,23 +392,32 @@ uint8_t SPIKeyPad::_getKey6x2()
   uint8_t rows = _read(0x3F);
 
   //  check if single line has gone low.
-  if      (rows == 0x00) return SPI_KEYPAD_NOKEY;
-  else if (rows == 0x01) key = 0;
-  else if (rows == 0x02) key = 1;
-  else if (rows == 0x04) key = 2;
-  else if (rows == 0x08) key = 3;
-  else if (rows == 0x10) key = 4;
-  else if (rows == 0x20) key = 5;
-  else return SPI_KEYPAD_FAIL;
+  switch (rows)
+  {
+    case 0x00: return SPI_KEYPAD_NOKEY;
+    case 0x01: key = 0; break;
+    case 0x02: key = 1; break;
+    case 0x04: key = 2; break;
+    case 0x08: key = 3; break;
+    case 0x10: key = 4; break;
+    case 0x20: key = 5; break;
+
+    default:
+      return SPI_KEYPAD_FAIL;
+  }
 
   //  2 columns as input pull up, 6 rows as output
   uint8_t cols = _read(0xC0);
 
   //  check if single line has gone low.
-  if      (cols == 0x00) return SPI_KEYPAD_NOKEY;
-  else if (cols == 0x40) key += 0;
-  else if (cols == 0x80) key += 6;
-  else return SPI_KEYPAD_FAIL;
+  switch (cols)
+  {
+    case 0x00: return SPI_KEYPAD_NOKEY;
+    case 0x40: key += 0; break;
+    case 0x80: key += 6; break;
+
+    default: return SPI_KEYPAD_FAIL;
+  }
 
   return key;   //  0..11
 }
@@ -403,19 +432,32 @@ uint8_t SPIKeyPad::_getKey8x1()
   uint8_t rows = _read(0xFF);
 
   //  check if single line has gone low.
-  if      (rows == 0x00) return SPI_KEYPAD_NOKEY;
-  else if (rows == 0x01) key = 0;
-  else if (rows == 0x02) key = 1;
-  else if (rows == 0x04) key = 2;
-  else if (rows == 0x08) key = 3;
-  else if (rows == 0x10) key = 4;
-  else if (rows == 0x20) key = 5;
-  else if (rows == 0x40) key = 6;
-  else if (rows == 0x80) key = 7;
-  else return SPI_KEYPAD_FAIL;
+switch (rows)
+  {
+    case 0x00: return SPI_KEYPAD_NOKEY;
+    case 0x01: key = 0; break;
+    case 0x02: key = 1; break;
+    case 0x04: key = 2; break;
+    case 0x08: key = 3; break;
+    case 0x10: key = 4; break;
+    case 0x20: key = 5; break;
+    case 0x40: key = 6; break;
+    case 0x80: key = 7; break;
+
+    default: return SPI_KEYPAD_FAIL;
+  }
 
   return key;   //  0..7
 }
 
+uint32_t SPIKeyPad::getSPIspeed() const
+{
+    return _SPIspeed;
+}
+
+bool SPIKeyPad::usesHWSPI() const
+{
+    return _hwSPI;
+}
 
 //  -- END OF FILE --

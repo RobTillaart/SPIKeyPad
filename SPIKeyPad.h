@@ -122,7 +122,7 @@ public:
    * @brief Check if any key is currently pressed.
    * @return true if pressed.
    */
-  [[nodiscard]] bool isPressed() const;
+  [[nodiscard]] bool isPressed();
 
 
   /**
@@ -154,14 +154,14 @@ public:
    * @brief Set keypad layout mode.
    * @param mode Keypad layout mode.
    */
-  void setKeyPadMode(const uint8_t mode = SPI_KEYPAD_4x4);
+  void setKeyPadMode(const SPIKeyPadMode mode = SPI_KEYPAD_4x4);
 
 
   /**
    * @brief Get current keypad mode.
    * @return Current keypad mode.
    */
-  [[nodiscard]] uint8_t getKeyPadMode() const;
+  [[nodiscard]] SPIKeyPadMode getKeyPadMode() const;
 
 
   /**
@@ -196,20 +196,14 @@ public:
    * @brief Get SPI bus speed.
    * @return SPI speed in Hz.
    */
-  [[nodiscard]] uint32_t getSPIspeed() const
-  {
-    return _SPIspeed;
-  }
+  [[nodiscard]] uint32_t getSPIspeed() const;
 
 
   /**
    * @brief Check if hardware SPI is used.
    * @return true if hardware SPI is enabled.
    */
-  [[nodiscard]] bool usesHWSPI() const
-  {
-    return _hwSPI;
-  }
+  [[nodiscard]] bool usesHWSPI() const;
 
 
 protected:
@@ -268,7 +262,7 @@ protected:
   SPISettings _spi_settings;
 
   uint8_t  _lastKey;
-  uint8_t  _mode;
+  SPIKeyPadMode _mode;
   uint16_t _debounceThreshold;
   uint32_t _lastTimeRead;
 
