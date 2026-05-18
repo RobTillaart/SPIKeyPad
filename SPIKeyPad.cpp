@@ -2,7 +2,7 @@
 //    FILE: SPIKeyPad.cpp
 //  AUTHOR: Rob Tillaart, Chris0xdeadbeef
 // VERSION: 0.1.2
-//    DATE: 2026-05-17
+//    DATE: 2026-04-09
 // PURPOSE: Arduino library for 4x4 KeyPad connected to an SPI MCP23S08
 //     URL: https://github.com/RobTillaart/SPIKeyPad
 
@@ -32,7 +32,7 @@ SPIKeyPad::SPIKeyPad(uint8_t select, uint8_t dataIn, uint8_t dataOut, uint8_t cl
 
 
 //  HARDWARE SPI
-SPIKeyPad::SPIKeyPad(int select, __SPI_CLASS__ * spi)
+SPIKeyPad::SPIKeyPad(uint8_t select, __SPI_CLASS__ * spi)
   : _address(0x00),
     _select(select),
     _hwSPI(true),
@@ -45,7 +45,7 @@ SPIKeyPad::SPIKeyPad(int select, __SPI_CLASS__ * spi)
 
 
 //  HARDWARE SPI
-SPIKeyPad::SPIKeyPad(int select, int address, __SPI_CLASS__ * spi)
+SPIKeyPad::SPIKeyPad(uint8_t select, uint8_t address, __SPI_CLASS__ * spi)
   : _address(address << 1),
     _select(select),
     _hwSPI(true),
@@ -224,6 +224,25 @@ uint32_t SPIKeyPad::getLastTimeRead() const
 }
 
 
+void SPIKeyPad::setSPIspeed(const uint32_t speed)
+{
+  _SPIspeed = speed;
+  _spi_settings = SPISettings(_SPIspeed, MSBFIRST, SPI_MODE0);
+}
+
+
+uint32_t SPIKeyPad::getSPIspeed() const
+{
+    return _SPIspeed;
+}
+
+
+bool SPIKeyPad::usesHWSPI() const
+{
+    return _hwSPI;
+}
+
+
 //////////////////////////////////////////////////////
 //
 //  PROTECTED
@@ -236,18 +255,16 @@ constexpr uint8_t MCP23S08_READ_REG  = 0x41;
 
 bool SPIKeyPad::writeReg(uint8_t reg, uint8_t value)
 {
-  //start write 
+  //  start write 
   ::digitalWrite(_select, LOW);
 
   if (_hwSPI)
   {
     _mySPI->beginTransaction(_spi_settings);
-
     //  _address already shifted
     _mySPI->transfer(MCP23S08_WRITE_REG | _address);
     _mySPI->transfer(reg);
     _mySPI->transfer(value);
-
     _mySPI->endTransaction();
   }
   else
@@ -259,7 +276,6 @@ bool SPIKeyPad::writeReg(uint8_t reg, uint8_t value)
   }
 
   ::digitalWrite(_select, HIGH);
-
   return true;
 }
 
@@ -274,9 +290,8 @@ uint8_t SPIKeyPad::readReg(uint8_t reg)
   if (_hwSPI)
   {
     _mySPI->beginTransaction(_spi_settings);
-
     //  _address already shifted
-    _mySPI->transfer(MCP23S08_READ_REG | _address); // TODO OPTIMIZE n times
+    _mySPI->transfer(MCP23S08_READ_REG | _address);  //  TODO OPTIMIZE n times
     _mySPI->transfer(reg);
     rv = _mySPI->transfer(0xFF);
     _mySPI->endTransaction();
@@ -290,7 +305,6 @@ uint8_t SPIKeyPad::readReg(uint8_t reg)
   }
 
   ::digitalWrite(_select, HIGH);
-
   return rv;
 }
 
@@ -450,14 +464,6 @@ switch (rows)
   return key;   //  0..7
 }
 
-uint32_t SPIKeyPad::getSPIspeed() const
-{
-    return _SPIspeed;
-}
-
-bool SPIKeyPad::usesHWSPI() const
-{
-    return _hwSPI;
-}
 
 //  -- END OF FILE --
+

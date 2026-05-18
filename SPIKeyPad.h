@@ -3,7 +3,7 @@
 //    FILE: SPIKeyPad.h
 //  AUTHOR: Rob Tillaart, Chris0xdeadbeef
 // VERSION: 0.1.2
-//    DATE: 2026-05-17
+//    DATE: 2026-04-09
 // PURPOSE: Arduino library for 4x4 KeyPad using an SPI MCP23S08
 //     URL: https://github.com/RobTillaart/SPIKeyPad
 
@@ -76,7 +76,10 @@ public:
    * @param select Chip Select pin.
    * @param spi Pointer to SPI interface.
    */
-  SPIKeyPad(int select, __SPI_CLASS__* spi);
+  SPIKeyPad(
+    uint8_t select,
+    __SPI_CLASS__* spi
+  );
 
   /**
    * @brief Construct a SPIKeyPad object using hardware SPI.
@@ -85,8 +88,8 @@ public:
    * @param spi Pointer to SPI interface.
    */
   SPIKeyPad(
-    int select,
-    int address = 0x00,
+    uint8_t select,
+    uint8_t address = 0x00,
     __SPI_CLASS__* spi = &SPI
   );
 
@@ -145,7 +148,7 @@ public:
    * @param keyMap Pointer to character map.
    *
    * Expected minimum size:
-   * - 16 chars for 4x4
+   * - 19 chars for 4x4
    * - user responsibility.
    */
   void loadKeyMap(const char * keyMap);
@@ -256,7 +259,7 @@ protected:
 
   bool _hwSPI = true;
 
-  //  10 MHz max for MCP23S08.
+  //  10 MHz is maximum for MCP23S08, 8 is a better clock divider on AVR.
   uint32_t _SPIspeed = 8000000;
 
   __SPI_CLASS__ * _mySPI;
@@ -272,3 +275,4 @@ protected:
 
 
 //  -- END OF FILE --
+
