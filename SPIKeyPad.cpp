@@ -255,7 +255,7 @@ constexpr uint8_t MCP23S08_READ_REG  = 0x41;
 
 bool SPIKeyPad::writeReg(uint8_t reg, uint8_t value)
 {
-  //  start write 
+  //  start write
   ::digitalWrite(_select, LOW);
 
   if (_hwSPI)
