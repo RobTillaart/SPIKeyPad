@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - improved constructor initialization using initializer lists
 - improved const correctness for getters and parameters
 - verified compatibility with C++11
+- fix select and address parameter to uint8_t
+- add setSPIspeed implementation
+- fix examples to compile without warning
+- minor edits
+
 
 ## [0.1.1] - 2026-05-16
 - Merge PR #2, Kudos to Chris0xdeadbeef
